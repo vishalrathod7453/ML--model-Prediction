@@ -6,58 +6,62 @@ import requests
 from streamlit_lottie import st_lottie
 
 # Page Configuration
-st.set_page_config(page_title="AI Impact Predictor", page_icon="🎓", layout="centered")
+st.set_page_config(page_title="AI Impact Predictor", page_icon="🤖", layout="wide")
 
-# --- LOAD ANIMATIONS ---
+# Custom CSS for an attractive UI
+st.markdown("""
+    <style>
+    .main { background-color: #f0f2f6; }
+    .stButton>button { width: 100%; border-radius: 20px; height: 3em; background-color: #4CAF50; color: white; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- ANIMATIONS ---
 def load_lottieurl(url):
     r = requests.get(url)
     return r.json() if r.status_code == 200 else None
 
-lottie_study = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_DMgA0w.json")
+lottie_ai = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_m6cu96ze.json")
 
-# --- LOAD MODEL ---
+# --- MODEL LOADING ---
 @st.cache_resource
 def load_model():
-    # Ensure 'Model.pkl' is uploaded to your GitHub repo in the same folder
+    # Ensure 'Model.pkl' is in your GitHub repo folder
     with open('Model.pkl', 'rb') as file:
         return pickle.load(file)
 
 try:
     model = load_model()
-except FileNotFoundError:
-    st.error("Error: 'Model.pkl' not found. Please upload it to your GitHub repository.")
+except Exception as e:
+    st.error(f"Could not load model: {e}")
     st.stop()
 
-# --- UI FRONTEND ---
-st.title("🎓 Student AI Impact Analyzer")
-st_lottie(lottie_study, height=200)
+# --- FRONTEND ---
+st.title("🎓 Student AI-Usage Impact Predictor")
+st.write("Analyze how AI tools are shaping academic outcomes.")
 
-st.write("Enter the student details below to predict the outcome using the KNN Model.")
+col_left, col_right = st.columns([1, 1])
 
-with st.form("prediction_form"):
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        age = st.number_input("Age", min_value=10, max_value=60, value=20)
-        gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-        edu_level = st.selectbox("Education Level", ["School", "Undergraduate", "Postgraduate"])
-        city = st.text_input("City", value="New York")
+with col_left:
+    st_lottie(lottie_ai, height=300)
+
+with col_right:
+    with st.expander("📝 Enter Student Details", expanded=True):
+        age = st.number_input("Age", 10, 60, 21)
+        # Note: These need to be encoded to numbers (0, 1, 2...) 
+        # based on how you trained your model.
+        gender = st.selectbox("Gender", [0, 1], format_func=lambda x: "Male" if x==0 else "Female")
+        edu = st.selectbox("Education", [0, 1, 2], format_func=lambda x: ["School", "UG", "PG"][x])
+        city = st.number_input("City Code (e.g., 0-10)", 0, 10, 0)
+        tool = st.selectbox("AI Tool", [0, 1, 2], format_func=lambda x: ["ChatGPT", "Gemini", "Other"][x])
+        hours = st.slider("Daily Usage Hours", 0, 12, 2)
+        purpose = st.selectbox("Purpose", [0, 1], format_func=lambda x: "Study" if x==0 else "Work")
+        impact = st.selectbox("Current Impact", [0, 1], format_func=lambda x: "Neutral" if x==0 else "Positive")
+
+    if st.button("✨ Predict Impact"):
+        # The model expects 8 features 
+        input_data = np.array([[age, gender, edu, city, tool, hours, purpose, impact]])
+        prediction = model.predict(input_data)
         
-    with col2:
-        ai_tool = st.selectbox("AI Tool Used", ["ChatGPT", "Gemini", "Claude", "Other"])
-        hours = st.slider("Daily Usage Hours", 0, 24, 2)
-        purpose = st.selectbox("Purpose", ["Study", "Research", "Coding", "General"])
-        grades_impact = st.selectbox("Current Impact on Grades", ["Positive", "Neutral", "Negative"])
-
-    submit = st.form_submit_button("Predict Outcome")
-
-if submit:
-    # Note: You may need to LabelEncode these inputs to match your model training!
-    # This is a placeholder for the 8 features identified in your .pkl file
-    features = np.array([[age, 0, 0, 0, 0, hours, 0, 0]]) # Replace 0s with encoded values
-    
-    prediction = model.predict(features)
-    
-    st.balloons()
-    st.success(f"### Predicted Result: {prediction[0]}")
-    st.info("Note: Categorical data (City, Gender, etc.) must be encoded as they were during training.")
+        st.balloons()
+        st.success(f"### Predicted Category: {prediction[0]}")
