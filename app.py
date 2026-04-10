@@ -19,7 +19,7 @@ lottie_anim = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_5njp
 @st.cache_resource
 def load_model():
     # Make sure 'Model.pkl' is the exact name in your GitHub repo
-    with open('Model.pkl', 'rb') as file:
+    with open('Model.pkl', 'wb') as file:
         return pickle.load(file)
 
 try:
