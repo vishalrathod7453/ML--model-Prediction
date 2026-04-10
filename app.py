@@ -5,80 +5,114 @@ import pickle
 import requests
 from streamlit_lottie import st_lottie
 
-# Page Configuration
-st.set_page_config(page_title="AI Impact Insights", page_icon="🤖", layout="wide")
+# --- PAGE CONFIG ---
+st.set_page_config(page_title="AI Usage Predictor", page_icon="🤖", layout="centered")
 
-# Custom CSS for a professional "Glassmorphism" look
+# --- ASSETS ---
+def load_lottieurl(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+lottie_ai = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_m9unqzzx.json")
+
+# --- LOAD MODEL ---
+@st.cache_resource
+def load_model():
+    with open("Model1.pkl", "rb") as f:
+        model = pickle.load(f)
+    return model
+
+model = load_model()
+
+# --- CUSTOM CSS FOR ANIMATION & STYLE ---
 st.markdown("""
     <style>
-    .main { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-    .stButton>button {
-        background-color: #4CAF50;
-        color: white;
-        border-radius: 12px;
+    .main {
+        background-color: #0e1117;
+    }
+    div.stButton > button:first-child {
+        background-color: #00ffbd;
+        color: black;
+        border-radius: 10px;
         height: 3em;
         width: 100%;
+        font-weight: bold;
         transition: 0.3s;
     }
-    .stButton>button:hover { background-color: #45a049; transform: scale(1.02); }
+    div.stButton > button:hover {
+        background-color: #00d49d;
+        border: 2px solid white;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- ANIMATION LOADER ---
-def load_lottieurl(url):
-    r = requests.get(url)
-    return r.json() if r.status_code == 200 else None
+# --- HEADER ---
+with st.container():
+    left_col, right_col = st.columns([2, 1])
+    with left_col:
+        st.title("🤖 AI Insight Predictor")
+        st.subheader("Predicting AI Tool engagement for 2026.")
+        st.write("Enter your demographics below to see the predicted AI behavior.")
+    with right_col:
+        st_lottie(lottie_ai, height=150, key="coding")
 
-lottie_ai = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_m6cu96ze.json")
+st.write("---")
 
-# --- MODEL LOADING ---
-@st.cache_resource
-def load_model():
-    # Make sure 'Modelv.pkl' is in your GitHub repository
-    with open('Modelv.pkl', 'wb') as file:
-        return pickle.load(file)
+# --- USER INPUT FORM ---
+with st.form("prediction_form"):
+    st.markdown("### 📋 User Profile Data")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        age = st.number_input("Age", min_value=1, max_value=100, value=25)
+        gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+        education = st.selectbox("Education Level", ["High School", "Bachelor's", "Master's", "PhD"])
+    
+    with col2:
+        city = st.selectbox("City Category", ["Tier 1", "Tier 2", "Tier 3"])
+        usage_hours = st.slider("Daily Usage Hours", 0.0, 24.0, 2.5)
+        purpose = st.selectbox("Primary Purpose", ["Education", "Work", "Personal", "Research"])
 
-try:
-    model = load_model()
-except FileNotFoundError:
-    st.error("⚠️ 'Modelv.pkl' not found. Please upload it to your GitHub repository.")
-    st.stop()
+    # Mapping categorical data to match model training (adjust based on your LabelEncoders)
+    # Note: freshers should ensure these mappings match the training set exactly.
+    gender_map = {"Male": 0, "Female": 1, "Other": 2}
+    edu_map = {"High School": 0, "Bachelor's": 1, "Master's": 2, "PhD": 3}
+    city_map = {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2}
+    purpose_map = {"Education": 0, "Work": 1, "Personal": 2, "Research": 3}
 
-# --- FRONTEND ---
-st.title("🎓 Student AI Usage & Impact Predictor")
-st.write("Predict student outcomes based on their interaction with AI tools.")
+    submit = st.form_submit_button("Generate Prediction ✨")
 
-col_anim, col_input = st.columns([1, 1.2])
-
-with col_anim:
-    st_lottie(lottie_ai, height=400, key="coding")
-
-with col_input:
-    st.subheader("📊 Input Student Parameters")
-    with st.container():
-        # Feature inputs organized to match the 8 expected features 
-        age = st.number_input("Age", 10, 80, 20)
+# --- PREDICTION LOGIC ---
+if submit:
+    # Prepare features based on Model1.pkl structure
+    features = np.array([[
+        age, 
+        gender_map[gender], 
+        edu_map[education], 
+        city_map[city], 
+        # Note: 'AI_Tool_Used' was a feature in your PKL. 
+        # If it's a feature, you'd need an input. If it's the target, remove from here.
+        0, # Placeholder for AI_Tool_Used feature index
+        usage_usage_hours,
+        purpose_map[purpose]
+    ]])
+    
+    try:
+        prediction = model.predict(features)
         
-        # Numerical mapping for the KNN model
-        gender = st.selectbox("Gender", [0, 1], format_func=lambda x: "Male" if x==0 else "Female")
-        edu = st.selectbox("Education Level", [0, 1, 2], format_func=lambda x: ["School", "UG", "PG"][x])
-        city = st.number_input("City Code (e.g., 0-50)", 0, 50, 1)
+        st.balloons()
+        st.success(f"### 🎯 Prediction Result: {prediction[0]}")
         
-        ai_tool = st.selectbox("AI Tool Used", [0, 1, 2], format_func=lambda x: ["ChatGPT", "Gemini", "Other"][x])
-        hours = st.slider("Daily Usage Hours", 0, 12, 2)
-        purpose = st.selectbox("Purpose", [0, 1], format_func=lambda x: "Academic" if x==0 else "Personal")
-        impact = st.selectbox("Current Impact on Grades", [0, 1], format_func=lambda x: "Neutral" if x==0 else "Positive")
+        # Display analysis
+        with st.expander("See Detailed Metrics"):
+            st.write(f"Based on a KNN (k={model.n_neighbors}) analysis, your profile aligns with users who typically interact with AI for **{purpose}**.")
+            
+    except Exception as e:
+        st.error(f"Error in prediction: {e}")
 
-    if st.button("✨ Run AI Prediction"):
-        # Construct exactly 8 features in the correct order 
-        input_features = np.array([[age, gender, edu, city, ai_tool, hours, purpose, impact]])
-        
-        try:
-            prediction = model.predict(input_features)
-            st.balloons()
-            st.success(f"### Predicted Result: {prediction[0]}")
-        except Exception as e:
-            st.error(f"Prediction Error: {e}")
-
-st.divider()
-st.caption("AI Model Deployment | Professional Portfolio 2026"))
+# --- FOOTER ---
+st.markdown("---")
+st.caption("Built for the 2026 Career Portfolio | Python & Streamlit Integration")
