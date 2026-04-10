@@ -35,7 +35,7 @@ lottie_ai = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_m6cu96
 @st.cache_resource
 def load_model():
     # Make sure 'Modelv.pkl' is in your GitHub repository
-    with open('Modelv.pkl', 'rb') as file:
+    with open('Modelv.pkl', 'wb') as file:
         return pickle.load(file)
 
 try:
