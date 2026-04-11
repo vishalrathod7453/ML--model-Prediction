@@ -2,152 +2,136 @@ import streamlit as st
 import pickle
 import pandas as pd
 import numpy as np
+from streamlit_lottie import st_lottie
 import requests
-import time
-import os
-
-# Optional Lottie import (safe)
-try:
-    from streamlit_lottie import st_lottie
-except:
-    st_lottie = None
 
 # --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="AI Impact Predictor",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="AI Persona Predictor", page_icon="🧠", layout="wide")
 
-# --- CUSTOM CSS ---
+# --- SLEEK FRONTEND STYLING ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: #FAFAFA; }
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
-        color: white; border-radius: 10px; border: none; padding: 10px 24px;
-        transition: all 0.3s ease-in-out;
+    .stApp {
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        color: #ffffff;
     }
-    div.stButton > button:first-child:hover { transform: translateY(-2px) scale(1.02); }
-    h1, h2, h3 { color: #4BA3E3; }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        border-radius: 20px;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 20px;
+    }
+    h1 {
+        font-family: 'Inter', sans-serif;
+        background: -webkit-linear-gradient(#00d2ff, #3a7bd5);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+    .stButton>button {
+        background: linear-gradient(45deg, #00d2ff 0%, #3a7bd5 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 50px;
+        font-weight: bold;
+        width: 100%;
+        transition: 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 210, 255, 0.4);
+    }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- HELPER FUNCTIONS ---
-@st.cache_data
-def load_lottieurl(url: str):
+# --- FAIL-SAFE LOTTIE LOADER ---
+def load_lottieurl(url):
     try:
-        r = requests.get(url)
+        r = requests.get(url, timeout=5)
         if r.status_code != 200:
             return None
         return r.json()
     except:
         return None
 
+lottie_ai = load_lottieurl("https://lottie.host/825441ec-3c35-4277-9877-33a887413c60/X7U0Yw0rSj.json")
+
+# --- MODEL LOADING ---
 @st.cache_resource
 def load_model():
     try:
-        model_path = os.path.join(os.path.dirname(__file__), "Model1.pkl")
-        with open("Model1.pkl", 'rb') as file:
-            return pickle.load(file)
+        with open("Model1.pkl", "rb") as f:
+            return pickle.load(f)
     except Exception as e:
-        return e
-
-# --- LOAD ASSETS ---
-lottie_ai = load_lottieurl("https://lottie.host/8b7d27e7-3b95-46f9-90d0-4bd24687d69b/gX9T2Wj39T.json")
+        st.error(f"Error loading Model1.pkl: {e}")
+        return None
 
 model = load_model()
 
-if isinstance(model, Exception):
-    st.error(f"❌ Failed to load model.pkl → {model}")
-    model_loaded = False
-else:
-    model_loaded = True
-
 # --- HEADER SECTION ---
-col1, col2 = st.columns([2, 1])
+with st.container():
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        if lottie_ai:
+            st_lottie(lottie_ai, height=280, key="main_anim")
+        else:
+            st.markdown("# 🤖")
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.title("AI Usage Intelligence")
+        st.markdown("#### Predicting user behavior patterns via KNN Analysis.")
 
-with col1:
-    st.title("🚀 AI Impact Predictor")
-    st.write("Enter user details to predict **Impact on Grades**.")
-
-with col2:
-    if lottie_ai and st_lottie:
-        st_lottie(lottie_ai, height=150)
-    else:
-        st.info("Animation not available")
-
-st.markdown("---")
+st.divider()
 
 # --- INPUT SECTION ---
-st.subheader("📊 User Profile & Usage Metrics")
+if model:
+    # Feature labels for your specific Model1
+    features = ["Age", "Gender", "Education Level", "City", "AI Tool Used", "Daily Usage Hours", "Purpose"]
+    
+    st.subheader("📊 User Profile Input")
+    
+    with st.container():
+        # Input UI inside the "Glass" card effect
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        
+        c1, c2, c3 = st.columns(3)
+        
+        # Note: KNN usually requires numeric input. 
+        # Make sure these match the encoding (0, 1, 2...) used in training.
+        with c1:
+            age = st.number_input("Age", 18, 100, 25)
+            gender = st.selectbox("Gender", [0, 1], help="0: Male, 1: Female (Example)")
+            edu = st.selectbox("Education Level", [0, 1, 2, 3], help="0: High School, 1: Bachelors...")
+            
+        with c2:
+            city = st.selectbox("City", [0, 1, 2], help="Numeric representation of city")
+            tool = st.selectbox("AI Tool Used", [0, 1, 2, 3], help="0: ChatGPT, 1: Gemini...")
+            
+        with c3:
+            usage = st.slider("Daily Usage Hours", 0.0, 24.0, 3.5)
+            purpose = st.selectbox("Purpose", [0, 1, 2], help="0: Work, 1: Education...")
 
-left_col, mid_col, right_col = st.columns(3)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-with left_col:
-    age = st.number_input("Age", 10, 100, 20)
-    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    city = st.selectbox("City Tier", ["Tier 1", "Tier 2", "Tier 3"])
-
-with mid_col:
-    education_level = st.selectbox("Education Level", ["High School", "Undergraduate", "Postgraduate"])
-    ai_tool = st.selectbox("Primary AI Tool", ["ChatGPT", "Claude", "Gemini", "Copilot", "Other"])
-
-with right_col:
-    daily_hours = st.number_input("Daily Usage Hours", 0.0, 24.0, 2.0)
-    purpose = st.selectbox("Primary Purpose", ["Research", "Coding", "Writing", "General Query", "Entertainment"])
-
-# --- ENCODING ---
-mappings = {
-    "gender": {"Male": 0, "Female": 1, "Other": 2},
-    "education": {"High School": 0, "Undergraduate": 1, "Postgraduate": 2},
-    "city": {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2},
-    "ai_tool": {"ChatGPT": 0, "Claude": 1, "Gemini": 2, "Copilot": 3, "Other": 4},
-    "purpose": {"Research": 0, "Coding": 1, "Writing": 2, "General Query": 3, "Entertainment": 4}
-}
-
-# --- PREDICTION ---
-st.markdown("---")
-
-if model_loaded:
-    if st.button("🔮 Predict Impact"):
-
-        # FIXED INDENTATION HERE ✅
-        features = pd.DataFrame([{
-            "Age": age,
-            "Gender": mappings["gender"][gender],
-            "Education_Level": mappings["education"][education_level],
-            "City": mappings["city"][city],
-            "AI_Tool_Used": mappings["ai_tool"][ai_tool],
-            "Daily_Usage_Hours": daily_hours,
-            "Purpose": mappings["purpose"][purpose]
-        }])
-
-        label_map = {0: "Low", 1: "Medium", 2: "High"}
-
-        with st.spinner("Analyzing data..."):
-            time.sleep(1)
-
-            try:
-                prediction = model.predict(features)
-
-                raw_output = prediction[0]
-                predicted_class = label_map.get(raw_output, raw_output)
-
-                st.markdown("### 🎯 Prediction Result")
-
-                if predicted_class == "High":
-                    st.success("✅ **High Impact** – AI usage is highly beneficial!")
-                    st.balloons()
-
-                elif predicted_class == "Medium":
-                    st.info("ℹ️ **Medium Impact** – Balanced usage.")
-
-                else:
-                    st.warning("⚠️ **Low Impact** – Try improving usage strategy.")
-
-            except Exception as e:
-                st.error(f"❌ Prediction error → {e}")
+    # --- PREDICTION TRIGGER ---
+    if st.button("Generate AI Prediction"):
+        # Prepare data for model
+        input_array = np.array([[age, gender, edu, city, tool, usage, purpose]])
+        
+        with st.spinner("Analyzing neural clusters..."):
+            prediction = model.predict(input_array)
+            
+            st.balloons()
+            st.markdown(f"""
+                <div style="background: rgba(0, 210, 255, 0.1); border: 2px solid #00d2ff; padding: 30px; border-radius: 20px; text-align: center;">
+                    <h2 style="color: #00d2ff; margin: 0;">PREDICTED CLASS: {prediction[0]}</h2>
+                    <p style="color: #ccc;">Classification based on Model1 K-Nearest Neighbors</p>
+                </div>
+            """, unsafe_allow_html=True)
 else:
-    st.warning("⚠️ Model not loaded. Please fix model.pkl file.")
+    st.error("Model file 'Model1.pkl' missing in directory!")
