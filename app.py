@@ -60,7 +60,7 @@ lottie_ai = load_lottieurl("https://lottie.host/8b7d27e7-3b95-46f9-90d0-4bd24687
 model = load_model()
 
 if isinstance(model, Exception):
-    st.error(f"❌ Failed to load model1.pkl → {model}")
+    st.error(f"❌ Failed to load model.pkl → {model}")
     model_loaded = False
 else:
     model_loaded = True
